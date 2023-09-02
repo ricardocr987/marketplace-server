@@ -81,7 +81,7 @@ new Elysia()
         const signature = params['signature'];
         return await validateSignature(signature);
     })
-    .listen({port: config.port, hostname: config.hostname}, ({ hostname, port }) => {
+    .listen({port: config.port}, ({ hostname, port }) => {
         console.log(`Running at http://${hostname}:${port}`)
     })
 

@@ -1,0 +1,23 @@
+{
+  "name": "marketplace-server",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "bun run --watch src/index.ts"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^0.6.0",
+    "@solana/web3.js": "^1.78.4",
+    "aleph-sdk-ts": "^3.6.3",
+    "brick-protocol": "^0.0.20",
+    "dotenv": "^16.3.1",
+    "elysia": "latest"
+  }
+}

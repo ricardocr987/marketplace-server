@@ -41,9 +41,9 @@ export async function validateSignature(signature: string): Promise<Response> {
         } else {
             console.log('Signature not used yet')
             const productInfo = ACCOUNTS_DATA_LAYOUT[AccountType.Product].deserialize(accountInfo?.data)[0] as Product
-            const combinedArray = [...productInfo.firstId, ...productInfo.secondId]
-            const byteArray = new Uint8Array(combinedArray)
-            const datasetID = String.fromCharCode(...byteArray);
+            console.log(productInfo)
+            const datasetID = combineIds([productInfo.firstId, productInfo.secondId]);
+            console.log(datasetID)
             const basePermissionContent = {
                 datasetID,
                 authorizer: productInfo.authority,
@@ -51,6 +51,7 @@ export async function validateSignature(signature: string): Promise<Response> {
                 requestor: signer,
                 tags: [signer, product],
             }
+            console.log(basePermissionContent)
             if (existsPermission) {
                 console.log('Permission existed before')
                 const permissionContent = {
@@ -78,4 +79,9 @@ export async function validateSignature(signature: string): Promise<Response> {
         console.error(error);
         return new Response('Internal Server Error', { status: 500 });
     }
+}
+
+function combineIds(ids: [number[], number[]]): string {
+    const reconstructedBuffer = Buffer.from(ids[0]);
+    return reconstructedBuffer.toString('hex');
 }

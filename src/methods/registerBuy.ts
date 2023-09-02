@@ -33,7 +33,7 @@ export async function registerBuy(params: RegisterBuyParams) {
         const connection = new Connection(config.rpc);
         const messagesSigner = ImportAccountFromPrivateKey(Uint8Array.from(JSON.parse(config.messagesKey)));
 
-        const [firstId, secondId] = getSplitId(params.productId)
+        const [firstId, secondId] = splitId(params.productId)
         const marketKey = new PublicKey(params.marketplace)
         const [product] = PublicKey.findProgramAddressSync(
             [
@@ -87,15 +87,6 @@ export async function registerBuy(params: RegisterBuyParams) {
     }
 }
 
-function getSplitId(str: string): [Buffer, Buffer]{
-    const bytes = new TextEncoder().encode(str);
-  
-    const data = new Uint8Array(64);
-    data.fill(32);
-    data.set(bytes);
-  
-    const firstId = Buffer.from(data.slice(0, 32));
-    const secondId = Buffer.from(data.slice(32));
-  
-    return [firstId, secondId];
+export function splitId(str: string): [Buffer, Buffer]{
+    return [Buffer.from(str, 'hex'), Buffer.from(str, 'hex')]
 }

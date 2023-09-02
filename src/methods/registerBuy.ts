@@ -1,8 +1,9 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { ImportAccountFromPrivateKey } from "aleph-sdk-ts/dist/accounts/solana";
-import { queryAccounts, Product, createRegisterBuyCnftTransaction } from "brick-protocol";
+import { queryAccounts, Product, createRegisterBuyCnftTransaction, AccountType } from "brick-protocol";
 import { generateAlephMessage } from "../aleph";
 import { BRICK_PROGRAM_ID_PK, config } from "../config";
+import { ACCOUNTS_DATA_LAYOUT } from "../utils/accounts";
 
 type RegisterBuyParams = {
     signer: string,
@@ -41,8 +42,8 @@ export async function registerBuy(params: RegisterBuyParams) {
             ],
             BRICK_PROGRAM_ID_PK
         );
-        const productResponse = await queryAccounts(config.indexerApi, { accounts: [product.toString()] });
-        const productInfo = productResponse[0].data as Product;
+        const accountInfo = await connection.getAccountInfo(product);
+        const productInfo = ACCOUNTS_DATA_LAYOUT[AccountType.Product].deserialize(accountInfo?.data)[0] as Product
         const itemHash = await generateAlephMessage({ 
             product: product.toString(), 
             seller: params.seller as string, 

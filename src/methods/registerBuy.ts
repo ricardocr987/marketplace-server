@@ -71,10 +71,7 @@ export async function registerBuy(params: RegisterBuyParams) {
 
         const transaction = await createRegisterBuyCnftTransaction(connection, accounts, parsedParams);
 
-        return Response.json({ transaction: Buffer.from(transaction.serialize()).toString('base64') }, { status: 200, headers: {
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'content-type': 'application/json' ,
-        }});
+        return Response.json({ transaction: Buffer.from(transaction.serialize()).toString('base64') }, { status: 200, headers: { 'Content-Type': 'application/json' }});
     } catch (error) {
         console.error(error);
         return new Response('Internal Server Error', { status: 500 });

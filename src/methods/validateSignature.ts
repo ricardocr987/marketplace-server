@@ -60,7 +60,7 @@ export async function validateSignature(signature: string): Promise<Response> {
             }
             asyncMessages.push(generateAlephMessage({signature, tags: [signature]}, 'Signature', config.channel, messagesSigner));
             await Promise.all(asyncMessages);
-            return new Response('Permission granted', { status: 200 });
+            return Response.json({ message: 'Permission granted' }, { status: 200, headers: { 'content-type': 'application/json' }});
         }
     } catch (error) {
         console.error(error);

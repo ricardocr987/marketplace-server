@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { ImportAccountFromPrivateKey } from "aleph-sdk-ts/dist/accounts/solana";
-import { queryAccounts, Product, createRegisterBuyCnftTransaction, AccountType } from "brick-protocol";
+import { Product, createRegisterBuyCnftTransaction, AccountType } from "brick-protocol";
 import { generateAlephMessage } from "../aleph";
 import { BRICK_PROGRAM_ID_PK, config } from "../config";
 import { ACCOUNTS_DATA_LAYOUT } from "../utils/accounts";
@@ -20,6 +20,8 @@ type RegisterBuyParams = {
 }
 
 export async function registerBuy(params: RegisterBuyParams) {
+    console.log('registerBuy starts')
+
     try {
         if (!config.rpc) return new Response('Error: Server rpc not configured', { status: 500 });
         if (!config.messagesKey) return new Response('Error: MessagesKey not configured', { status: 500 });
@@ -52,6 +54,7 @@ export async function registerBuy(params: RegisterBuyParams) {
             paymentMint: params.paymentMint as string, 
             totalAmount: Number(productInfo.sellerConfig.productPrice) * params.params.amount 
         }, 'Purchase', 'BrickV1.1', messagesSigner);
+        console.log('NFT itemHash: ', itemHash)
 
         const accounts = {
             signer: new PublicKey(params.signer),
@@ -63,16 +66,21 @@ export async function registerBuy(params: RegisterBuyParams) {
             merkleTree: new PublicKey(productInfo.merkleTree),
         };
 
+        console.log('Accounts: ', accounts)
+
         const parsedParams = {
             rewardsActive: params.params.rewardsActive,
             amount: Number(params.params.amount),
             name: params.params.name,
             uri: `https://api1.aleph.im/api/v0/messages.json?hashes=${itemHash}`,
         }
+        console.log('Params: ', parsedParams)
 
         const transaction = await createRegisterBuyCnftTransaction(connection, accounts, parsedParams);
+        const serializedTransaction = Buffer.from(transaction.serialize()).toString('base64')
+        console.log('Serialized transaction ', serializedTransaction)
 
-        return Response.json({ transaction: Buffer.from(transaction.serialize()).toString('base64') }, { status: 200, headers: { 'Content-Type': 'application/json' }});
+        return Response.json({ transaction: serializedTransaction }, { status: 200, headers: { 'Content-Type': 'application/json' }});
     } catch (error) {
         console.error(error);
         return new Response('Internal Server Error', { status: 500 });

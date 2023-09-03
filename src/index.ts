@@ -32,7 +32,7 @@ new Elysia()
             paymentMint: params['paymentMint'],
             params: {
                 id: params['id'],
-                productPrice: parseInt(params['productPrice'], 10),
+                productPrice: parseFloat(params['productPrice']),
                 feeBasisPoints: parseInt(params['feeBasisPoints'], 10),
                 height: parseInt(params['height'], 10),
                 buffer: parseInt(params['buffer'], 10),

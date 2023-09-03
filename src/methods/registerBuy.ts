@@ -87,6 +87,6 @@ export async function registerBuy(params: RegisterBuyParams) {
     }
 }
 
-export function splitId(str: string): [Buffer, Buffer]{
+export function splitId(str: string): [Buffer, Buffer] {
     return [Buffer.from(str, 'hex'), Buffer.from(str, 'hex')]
 }

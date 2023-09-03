@@ -11,14 +11,15 @@ export async function validateSignature(signature: string): Promise<Response> {
     try {
         if (!config.rpc) return new Response('Error: Server rpc not configured', { status: 500 });
         if (!config.messagesKey) return new Response('Error: MessagesKey not configured', { status: 500 });
-        if (!config.indexerApi) return new Response('Error: Indexer API not configured', { status: 500 });
-        if (!signature) return new Response('Error: Signature is missing', { status: 400 });
 
         const connection = new Connection(config.rpc);
         const messagesSigner = ImportAccountFromPrivateKey(Uint8Array.from(JSON.parse(config.messagesKey)));
         
         const tx = await connection.getTransaction(signature, {commitment: 'confirmed', maxSupportedTransactionVersion: 1});
-        if (!tx) return new Response('Transaction not found', { status: 404 });
+        if (!tx) {
+            console.log('Transaction not found')
+            return new Response('Transaction not found', { status: 404 });
+        }
         console.log('Found the transaction from signature')
 
         const [context] = IX_DATA_LAYOUT[InstructionType.RegisterBuyCnft].deserialize(tx?.transaction.message.compiledInstructions[1].data);
@@ -42,11 +43,11 @@ export async function validateSignature(signature: string): Promise<Response> {
             console.log('Signature not used yet')
             const productInfo = ACCOUNTS_DATA_LAYOUT[AccountType.Product].deserialize(accountInfo?.data)[0] as Product
             console.log(productInfo)
-            const datasetID = combineIds([productInfo.firstId, productInfo.secondId]);
+            const datasetID = Buffer.from(productInfo.firstId).toString('hex');
             console.log(datasetID)
             const basePermissionContent = {
                 datasetID,
-                authorizer: productInfo.authority,
+                authorizer: productInfo.authority.toString(),
                 status: 'GRANTED',
                 requestor: signer,
                 tags: [signer, product],
@@ -73,7 +74,7 @@ export async function validateSignature(signature: string): Promise<Response> {
             const [itemHash1, itemHash2] = await Promise.all(asyncMessages);
             console.log('Permission hash: ', itemHash1, ' Signature hash: ', itemHash2)
             console.log('Permission granted')
-            return Response.json(JSON.stringify({ message: 'Permission granted' }), { status: 200, headers: { 'Content-Type': 'application/json' }});
+            return Response.json({ message: 'Permission granted' }, { status: 200, headers: { 'Content-Type': 'application/json' }});
         }
     } catch (error) {
         console.error(error);

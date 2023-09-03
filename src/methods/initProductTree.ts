@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { config } from "../config";
-import { createInitProductTreeTransaction } from "brick-protocol";
+import { createInitProductTreeTransaction } from "../../../brick/ts-sdk/dist/index.js";
 
 type InitProductTreeParams = {
     signer: string,
@@ -29,7 +29,7 @@ export async function initProductTree(params: InitProductTreeParams) {
             marketplace: new PublicKey(params.marketplace),
             paymentMint: new PublicKey(params.paymentMint)
         };
-        console.log('Received accounts ', accounts)
+        console.log('Dataser id ', params.params.id)
         const normalizeParams = {
             id: String(params.params.id),
             productPrice: Number(params.params.productPrice),
@@ -40,7 +40,7 @@ export async function initProductTree(params: InitProductTreeParams) {
             name: String(params.params.name), 
             metadataUrl: String(params.params.metadataUrl),
         }
-        console.log('Normalized parans ', normalizeParams)
+        console.log('Normalized params ', normalizeParams)
         const transaction = await createInitProductTreeTransaction(connection, accounts, normalizeParams);
         const serializedTransaction = Buffer.from(transaction.serialize()).toString('base64')
         console.log('Serialized transaction ', serializedTransaction)

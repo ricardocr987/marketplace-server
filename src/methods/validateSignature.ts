@@ -5,7 +5,7 @@ import { existsMessage, generateAlephMessage } from "../aleph";
 import { config } from "../config";
 import { ACCOUNTS_DATA_LAYOUT } from "../utils/accounts";
 
-export async function validateSignature(signature: string): Promise<Response> {
+export async function validateSignature(signature: string, productId: string): Promise<Response> {
     console.log('validateSignature starts')
 
     try {
@@ -24,13 +24,13 @@ export async function validateSignature(signature: string): Promise<Response> {
 
         const [context] = IX_DATA_LAYOUT[InstructionType.RegisterBuyCnft].deserialize(tx?.transaction.message.compiledInstructions[1].data);
         const { ...result } = context;
-        const product = tx?.transaction.message.staticAccountKeys[3]?.toString() || '';
+        const product = tx?.transaction.message.staticAccountKeys[4]?.toString() || '';
         const signer = tx?.transaction.message.staticAccountKeys[0]?.toString() || '';   
         console.log('Product: ', product, ' signer: ', signer)
 
         const asyncTasks = [];
         asyncTasks.push(existsMessage([signature], ['Signature'], messagesSigner.address, [config.channel]));
-        asyncTasks.push(existsMessage([signer, product], ['Permission'], messagesSigner.address, [config.channel]));
+        asyncTasks.push(existsMessage([product + signer], ['Permission'], messagesSigner.address, [config.channel]));
         asyncTasks.push(connection.getAccountInfo(new PublicKey(product)));
         const [existsSignature, existsPermission, accountInfo] = await Promise.all(asyncTasks);
         console.log('First batch of async functions done')
@@ -43,7 +43,7 @@ export async function validateSignature(signature: string): Promise<Response> {
             console.log('Signature not used yet')
             const productInfo = ACCOUNTS_DATA_LAYOUT[AccountType.Product].deserialize(accountInfo?.data)[0] as Product
             console.log(productInfo)
-            const datasetID = Buffer.from(productInfo.firstId).toString('hex');
+            const datasetID = productId//Buffer.from(productInfo.firstId).toString('hex');
             console.log(datasetID)
             const basePermissionContent = {
                 datasetID,
@@ -54,12 +54,14 @@ export async function validateSignature(signature: string): Promise<Response> {
             }
             console.log(basePermissionContent)
             if (existsPermission) {
+                console.log(existsPermission)
                 console.log('Permission existed before')
                 const permissionContent = {
                     ...basePermissionContent,
                     executionCount: existsPermission.executionCount,
                     maxExecutionCount: existsPermission.maxExecutionCount + result.params.amount,
                 }
+                console.log(permissionContent)
                 asyncMessages.push(generateAlephMessage(permissionContent, 'amend', config.channel, messagesSigner, existsPermission.item_hash));
             } else {
                 console.log('Permission not existed before')

@@ -70,7 +70,8 @@ export async function existsMessage(
   apiServer: string = "https://api1.aleph.im"
 ) {
   try {
-    const url = `${apiServer}/api/v0/posts.json?tags=${tags}&channels=${channels}&types=${types}&sender=${messagesSignerAddress}`;    
+    const url = `${apiServer}/api/v0/posts.json?tags=${tags}&channels=${channels}&types=${types}&sender=${messagesSignerAddress}`;  
+    console.log('URL', url)  
     const response = await fetch(url, {
       method: 'GET',
       headers: {

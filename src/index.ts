@@ -77,9 +77,11 @@ new Elysia()
     .get('/validateSignature', async (req) => {
         const params = parseUrl(req.request.url);
         if (!params['signature']) return new Response('Error: Missing required parameters', { status: 400 });
+        if (!params['itemHash']) return new Response('Error: Missing required parameters', { status: 400 });
 
         const signature = params['signature'];
-        return await validateSignature(signature);
+        const itemHash = params['itemHash'];
+        return await validateSignature(signature, itemHash);
     })
     .listen({port: config.port}, ({ hostname, port }) => {
         console.log(`Running at http://${hostname}:${port}`)

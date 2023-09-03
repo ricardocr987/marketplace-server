@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { config } from "../config";
-import { createInitProductTreeTransaction } from "../../../brick/ts-sdk/dist/index.js";
+import { createInitProductTreeTransaction } from "brick-protocol";
 
 type InitProductTreeParams = {
     signer: string,

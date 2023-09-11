@@ -1,20 +1,34 @@
-import { Connection, PublicKey } from "@solana/web3.js";
+import { IX_DATA_LAYOUT, InstructionType, Product, AccountType } from "brick-protocol";
 import { ImportAccountFromPrivateKey } from "aleph-sdk-ts/dist/accounts/solana";
-import { IX_DATA_LAYOUT, InstructionType, queryAccounts, Product, AccountType } from "brick-protocol";
+import { ACCOUNTS_DATA_LAYOUT } from "../utils/layout/accounts";
 import { existsMessage, generateAlephMessage } from "../aleph";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { verifyToken } from "../middleware/auth";
 import { config } from "../config";
-import { ACCOUNTS_DATA_LAYOUT } from "../utils/accounts";
+import Elysia, { t } from "elysia";
 
-export async function validateSignature(signature: string, productId: string): Promise<Response> {
+const validateSignatureBody = t.Object({
+    signature: t.String(),
+    productId: t.String()
+})
+
+export const validatePurchaseSignature = (app: Elysia) =>
+    app.use(verifyToken)
+        .post('/validateSignature', async ({body: { signature, productId }}) => {
+            return await validateSignature(signature, productId);
+        }, { body: validateSignatureBody });
+
+async function validateSignature(signature: string, productId: string): Promise<Response> {
     console.log('validateSignature starts')
 
     try {
-        if (!config.rpc) return new Response('Error: Server rpc not configured', { status: 500 });
-        if (!config.messagesKey) return new Response('Error: MessagesKey not configured', { status: 500 });
+        if (!config.RPC) return new Response('Error: Server rpc not configured', { status: 500 });
+        if (!config.MESSAGES_KEY) return new Response('Error: MessagesKey not configured', { status: 500 });
 
-        const connection = new Connection(config.rpc);
-        const messagesSigner = ImportAccountFromPrivateKey(Uint8Array.from(JSON.parse(config.messagesKey)));
-        
+        const connection = new Connection(config.RPC);
+
+        const messagesSigner = ImportAccountFromPrivateKey(Uint8Array.from(JSON.parse(config.MESSAGES_KEY)));
+
         const tx = await connection.getTransaction(signature, {commitment: 'confirmed', maxSupportedTransactionVersion: 1});
         if (!tx) {
             console.log('Transaction not found')
@@ -26,11 +40,10 @@ export async function validateSignature(signature: string, productId: string): P
         const { ...result } = context;
         const product = tx?.transaction.message.staticAccountKeys[4]?.toString() || '';
         const signer = tx?.transaction.message.staticAccountKeys[0]?.toString() || '';   
-        console.log('Product: ', product, ' signer: ', signer)
 
         const asyncTasks = [];
-        asyncTasks.push(existsMessage([signature], ['Signature'], messagesSigner.address, [config.channel]));
-        asyncTasks.push(existsMessage([product + signer], ['Permission'], messagesSigner.address, [config.channel]));
+        asyncTasks.push(existsMessage([signature], ['Signature'], messagesSigner.address, [config.ALEPH_CHANNEL]));
+        asyncTasks.push(existsMessage([product + signer], ['Permission'], messagesSigner.address, [config.ALEPH_CHANNEL]));
         asyncTasks.push(connection.getAccountInfo(new PublicKey(product)));
         const [existsSignature, existsPermission, accountInfo] = await Promise.all(asyncTasks);
         console.log('First batch of async functions done')
@@ -52,17 +65,14 @@ export async function validateSignature(signature: string, productId: string): P
                 requestor: signer,
                 tags: [signer, product],
             }
-            console.log(basePermissionContent)
             if (existsPermission) {
-                console.log(existsPermission)
                 console.log('Permission existed before')
                 const permissionContent = {
                     ...basePermissionContent,
                     executionCount: existsPermission.executionCount,
                     maxExecutionCount: existsPermission.maxExecutionCount + result.params.amount,
                 }
-                console.log(permissionContent)
-                asyncMessages.push(generateAlephMessage(permissionContent, 'amend', config.channel, messagesSigner, existsPermission.item_hash));
+                asyncMessages.push(generateAlephMessage(permissionContent, 'amend', config.ALEPH_CHANNEL, messagesSigner, existsPermission.item_hash));
             } else {
                 console.log('Permission not existed before')
                 const permissionContent = {
@@ -70,21 +80,15 @@ export async function validateSignature(signature: string, productId: string): P
                     executionCount: 0,
                     maxExecutionCount: result.params.amount,
                 }
-                asyncMessages.push(generateAlephMessage(permissionContent, 'Permission', config.channel, messagesSigner));
+                asyncMessages.push(generateAlephMessage(permissionContent, 'Permission', config.ALEPH_CHANNEL, messagesSigner));
             }
-            asyncMessages.push(generateAlephMessage({signature, tags: [signature]}, 'Signature', config.channel, messagesSigner));
-            const [itemHash1, itemHash2] = await Promise.all(asyncMessages);
-            console.log('Permission hash: ', itemHash1, ' Signature hash: ', itemHash2)
-            console.log('Permission granted')
+            asyncMessages.push(generateAlephMessage({signature, tags: [signature]}, 'Signature', config.ALEPH_CHANNEL, messagesSigner));
+            await Promise.all(asyncMessages);
+            console.log('Permission granted');
             return Response.json({ message: 'Permission granted' }, { status: 200, headers: { 'Content-Type': 'application/json' }});
         }
     } catch (error) {
         console.error(error);
         return new Response('Internal Server Error', { status: 500 });
     }
-}
-
-function combineIds(ids: [number[], number[]]): string {
-    const reconstructedBuffer = Buffer.from(ids[0]);
-    return reconstructedBuffer.toString('hex');
 }

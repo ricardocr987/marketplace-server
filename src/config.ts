@@ -1,15 +1,11 @@
-import { PublicKey } from '@solana/web3.js';
-import dotenv from 'dotenv';
-dotenv.config();
-
 export const config = {
-    hostname: process.env.HOST || '',
-    port: process.env.PORT || '',
-    rpc: process.env.RPC || '',
-    messagesKey: process.env.MESSAGES_KEY || '',
-    indexerApi: process.env.INDEXER_API || '',
-    channel: process.env.ALEPH_CHANNEL || ''
+    PORT: Bun.env.PORT || '',
+    RPC: Bun.env.RPC || '',
+    MESSAGES_KEY: Bun.env.MESSAGES_KEY || '',
+    INDEXER_API: Bun.env.INDEXER_API || '',
+    ALEPH_CHANNEL: Bun.env.ALEPH_CHANNEL || '',
+    JWT_SECRET: Bun.env.JWT_SECRET || '',
+    FIREBASE_PROJECT_ID: Bun.env.FIREBASE_PROJECT_ID || '',
+    FIREBASE_EMAIL: Bun.env.FIREBASE_EMAIL || '',
+    FIREBASE_PRIVATE_KEY: Bun.env.FIREBASE_PRIVATE_KEY || '',
 }
-
-export const BRICK_PROGRAM_ID = 'brick5uEiJqSkfuAvMtKmq7kiuEVmbjVMiigyV51GRF'
-export const BRICK_PROGRAM_ID_PK = new PublicKey(BRICK_PROGRAM_ID)

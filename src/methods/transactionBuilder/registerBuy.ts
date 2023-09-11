@@ -1,9 +1,11 @@
-import { Connection, PublicKey } from "@solana/web3.js";
-import { ImportAccountFromPrivateKey } from "aleph-sdk-ts/dist/accounts/solana";
 import { Product, createRegisterBuyCnftTransaction, AccountType } from "brick-protocol";
-import { generateAlephMessage } from "../aleph";
-import { BRICK_PROGRAM_ID_PK, config } from "../config";
-import { ACCOUNTS_DATA_LAYOUT } from "../utils/accounts";
+import { ImportAccountFromPrivateKey } from "aleph-sdk-ts/dist/accounts/solana";
+import { ACCOUNTS_DATA_LAYOUT } from "../../utils/layout/accounts";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { BRICK_PROGRAM_ID_PK } from "../../constants";
+import { generateAlephMessage } from "../../aleph";
+import { config } from "../../config";
+import { splitId } from "../../utils";
 
 type RegisterBuyParams = {
     signer: string,
@@ -20,18 +22,19 @@ type RegisterBuyParams = {
 }
 
 export async function registerBuy(params: RegisterBuyParams) {
-    console.log('registerBuy starts')
+    console.log('registerBuy starts');
 
     try {
-        if (!config.rpc) return new Response('Error: Server rpc not configured', { status: 500 });
-        if (!config.messagesKey) return new Response('Error: MessagesKey not configured', { status: 500 });
-        if (!config.indexerApi) return new Response('Error: MessagesKey not configured', { status: 500 });
+        if (!config.RPC || !config.MESSAGES_KEY || !config.INDEXER_API) {
+            return new Response('Error: Server configuration missing', { status: 500 });
+        }
+
         if (!params.signer || !params.marketplace || !params.productId || !params.paymentMint || !params.seller || !params.marketplaceAuth || !params.params) {
             return new Response('Error: Missing required information', { status: 500 });
         }
 
-        const connection = new Connection(config.rpc);
-        const messagesSigner = ImportAccountFromPrivateKey(Uint8Array.from(JSON.parse(config.messagesKey)));
+        const connection = new Connection(config.RPC);
+        const messagesSigner = ImportAccountFromPrivateKey(Uint8Array.from(JSON.parse(config.MESSAGES_KEY)));
 
         const [firstId, secondId] = splitId(params.productId)
         const marketKey = new PublicKey(params.marketplace)
@@ -44,8 +47,10 @@ export async function registerBuy(params: RegisterBuyParams) {
             ],
             BRICK_PROGRAM_ID_PK
         );
+        
         const accountInfo = await connection.getAccountInfo(product);
         const productInfo = ACCOUNTS_DATA_LAYOUT[AccountType.Product].deserialize(accountInfo?.data)[0] as Product
+
         const itemHash = await generateAlephMessage({ 
             product: product.toString(), 
             seller: params.seller as string, 
@@ -66,27 +71,20 @@ export async function registerBuy(params: RegisterBuyParams) {
             merkleTree: new PublicKey(productInfo.merkleTree),
         };
 
-        console.log('Accounts: ', accounts)
-
         const parsedParams = {
             rewardsActive: params.params.rewardsActive,
             amount: Number(params.params.amount),
             name: params.params.name,
             uri: `https://api1.aleph.im/api/v0/messages.json?hashes=${itemHash}`,
-        }
-        console.log('Params: ', parsedParams)
+        };
 
         const transaction = await createRegisterBuyCnftTransaction(connection, accounts, parsedParams);
         const serializedTransaction = Buffer.from(transaction.serialize()).toString('base64')
         console.log('Serialized transaction ', serializedTransaction)
 
-        return Response.json({ transaction: serializedTransaction }, { status: 200, headers: { 'Content-Type': 'application/json' }});
+        return new Response(JSON.stringify({ transaction: serializedTransaction }), { status: 200, headers: { 'Content-Type': 'application/json' }});
     } catch (error) {
         console.error(error);
         return new Response('Internal Server Error', { status: 500 });
     }
-}
-
-export function splitId(str: string): [Buffer, Buffer] {
-    return [Buffer.from(str, 'hex'), Buffer.from(str, 'hex')]
 }
